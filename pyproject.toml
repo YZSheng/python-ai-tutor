@@ -9,3 +9,8 @@ dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
 ]
+
+[tool.pytest.ini_options]
+# Tell pytest to look for test functions in any .py file in challenges/
+python_files = ["challenges/*.py"]
+python_functions = ["test_*"]
