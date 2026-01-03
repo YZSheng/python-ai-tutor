@@ -95,7 +95,11 @@ def read_logs(file_path: str) -> Iterator[str]:
     # TODO: Implement this generator
     # Hint: Use a context manager to open the file
     # Hint: Strip whitespace and skip empty lines
-    pass
+    with open(file_path) as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                yield line
 
 
 def parse_log_line(line: str) -> Optional[Tuple[str, str, str]]:
@@ -188,7 +192,6 @@ def test_parse_log_line():
     assert parse_log_line("2024-01-15 10:23:45 INFO") is None
 
 
-@pytest.mark.skip()
 def test_read_logs(tmp_path):
     # Create a test log file
     log_file = tmp_path / "test.log"
