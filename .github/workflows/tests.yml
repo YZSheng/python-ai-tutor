@@ -25,4 +25,4 @@ jobs:
       run: uv sync
 
     - name: Run tests
-      run: uv run pytest challenges/ -v
+      run: uv run pytest challenges/*.py -v
