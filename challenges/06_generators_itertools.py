@@ -129,8 +129,7 @@ def parse_log_line(line: str) -> Optional[Tuple[str, str, str]]:
 
 
 def filter_by_level(
-    logs: Iterator[Tuple[str, str, str]],
-    levels: Optional[List[str]] = None
+    logs: Iterator[Tuple[str, str, str]], levels: Optional[List[str]] = None
 ) -> Iterator[Tuple[str, str, str]]:
     """
     Generator that filters logs by level.
@@ -145,13 +144,12 @@ def filter_by_level(
     # TODO: Implement filtering generator
     # Hint: If levels is None, yield everything
     # Hint: Use a generator expression or yield in a loop
-    pass
+    for log in logs:
+        if levels is None or log[1] in levels:
+            yield log
 
 
-def analyze_logs(
-    file_path: str,
-    levels: Optional[List[str]] = None
-) -> Dict[str, any]:
+def analyze_logs(file_path: str, levels: Optional[List[str]] = None) -> Dict[str, any]:
     """
     Analyze a log file and return statistics.
 
@@ -185,7 +183,7 @@ def analyze_logs(
 def test_parse_log_line():
     line = "2024-01-15 10:23:45 INFO User logged in"
     result = parse_log_line(line)
-    assert result == ('2024-01-15 10:23:45', 'INFO', 'User logged in')
+    assert result == ("2024-01-15 10:23:45", "INFO", "User logged in")
 
     # Test malformed line
     assert parse_log_line("invalid") is None
@@ -195,31 +193,32 @@ def test_parse_log_line():
 def test_read_logs(tmp_path):
     # Create a test log file
     log_file = tmp_path / "test.log"
-    log_file.write_text("""2024-01-15 10:23:45 INFO User logged in
+    log_file.write_text(
+        """2024-01-15 10:23:45 INFO User logged in
 2024-01-15 10:24:12 ERROR Database connection failed
 2024-01-15 10:24:15 WARNING Cache miss
 
 2024-01-15 10:25:01 INFO User logged out
-""")
+"""
+    )
 
     lines = list(read_logs(str(log_file)))
     assert len(lines) == 4  # Empty lines should be skipped
     assert "INFO User logged in" in lines[0]
 
 
-@pytest.mark.skip()
 def test_filter_by_level():
     logs = [
-        ('2024-01-15 10:23:45', 'INFO', 'Message 1'),
-        ('2024-01-15 10:24:12', 'ERROR', 'Message 2'),
-        ('2024-01-15 10:24:15', 'WARNING', 'Message 3'),
-        ('2024-01-15 10:25:01', 'INFO', 'Message 4'),
+        ("2024-01-15 10:23:45", "INFO", "Message 1"),
+        ("2024-01-15 10:24:12", "ERROR", "Message 2"),
+        ("2024-01-15 10:24:15", "WARNING", "Message 3"),
+        ("2024-01-15 10:25:01", "INFO", "Message 4"),
     ]
 
     # Filter to only ERROR
-    filtered = list(filter_by_level(iter(logs), ['ERROR']))
+    filtered = list(filter_by_level(iter(logs), ["ERROR"]))
     assert len(filtered) == 1
-    assert filtered[0][1] == 'ERROR'
+    assert filtered[0][1] == "ERROR"
 
     # No filter (all pass through)
     all_logs = list(filter_by_level(iter(logs), None))
@@ -229,43 +228,47 @@ def test_filter_by_level():
 @pytest.mark.skip()
 def test_analyze_logs(tmp_path):
     log_file = tmp_path / "test.log"
-    log_file.write_text("""2024-01-15 10:23:45 INFO User logged in
+    log_file.write_text(
+        """2024-01-15 10:23:45 INFO User logged in
 2024-01-15 10:24:12 ERROR Database connection failed
 2024-01-15 10:24:15 WARNING Cache miss
 2024-01-15 10:25:01 INFO User logged out
 2024-01-15 10:25:02 INFO User logged in
 2024-01-15 10:25:03 ERROR Database connection failed
 2024-01-15 10:25:04 INFO User logged in
-""")
+"""
+    )
 
     result = analyze_logs(str(log_file))
 
-    assert result['total'] == 7
-    assert result['by_level']['INFO'] == 4
-    assert result['by_level']['ERROR'] == 2
-    assert result['by_level']['WARNING'] == 1
-    assert len(result['top_messages']) <= 3
+    assert result["total"] == 7
+    assert result["by_level"]["INFO"] == 4
+    assert result["by_level"]["ERROR"] == 2
+    assert result["by_level"]["WARNING"] == 1
+    assert len(result["top_messages"]) <= 3
 
     # Top message should be "User logged in" (appears 3 times)
-    assert result['top_messages'][0] == ('User logged in', 3)
+    assert result["top_messages"][0] == ("User logged in", 3)
 
 
 @pytest.mark.skip()
 def test_analyze_logs_filtered(tmp_path):
     log_file = tmp_path / "test.log"
-    log_file.write_text("""2024-01-15 10:23:45 INFO User logged in
+    log_file.write_text(
+        """2024-01-15 10:23:45 INFO User logged in
 2024-01-15 10:24:12 ERROR Database connection failed
 2024-01-15 10:24:15 WARNING Cache miss
 2024-01-15 10:25:01 INFO User logged out
 2024-01-15 10:25:02 ERROR Database connection failed
-""")
+"""
+    )
 
     # Only analyze ERROR logs
-    result = analyze_logs(str(log_file), levels=['ERROR'])
+    result = analyze_logs(str(log_file), levels=["ERROR"])
 
-    assert result['total'] == 2
-    assert result['by_level'] == {'ERROR': 2}
-    assert result['top_messages'][0] == ('Database connection failed', 2)
+    assert result["total"] == 2
+    assert result["by_level"] == {"ERROR": 2}
+    assert result["top_messages"][0] == ("Database connection failed", 2)
 
 
 @pytest.mark.skip()
@@ -274,6 +277,7 @@ def test_generator_memory_efficiency():
     This test verifies that generators are actually lazy.
     We create a generator but don't consume it fully.
     """
+
     def large_log_generator():
         for i in range(1000000):
             yield f"2024-01-15 10:23:45 INFO Message {i % 100}"
@@ -284,4 +288,3 @@ def test_generator_memory_efficiency():
 
     assert len(first_ten) == 10
     # If this completes quickly, generators are working correctly!
-
