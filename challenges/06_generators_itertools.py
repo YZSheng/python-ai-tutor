@@ -176,7 +176,29 @@ def analyze_logs(file_path: str, levels: Optional[List[str]] = None) -> Dict[str
     # Hint: You'll need to consume the generator to count/analyze
     # Hint: Consider using itertools.tee if you need to iterate multiple times
     # Hint: Use Counter for counting messages
-    pass
+    by_level: Counter[str] = Counter()
+    message_counts: Counter[str] = Counter()
+
+    # Precompute set for faster membership checks if levels is provided
+    levels_set = set(levels) if levels else None
+
+    for line in read_logs(file_path):
+        timestamp, level, message = parse_log_line(line)
+
+        if levels_set is not None and level not in levels_set:
+            continue
+
+        by_level[level] += 1
+        message_counts[message] += 1
+
+    total = sum(by_level.values())
+    top_messages = message_counts.most_common(3)
+
+    return {
+        "total": total,
+        "by_level": dict(by_level),
+        "top_messages": top_messages,
+    }
 
 
 # Test cases
@@ -225,7 +247,6 @@ def test_filter_by_level():
     assert len(all_logs) == 4
 
 
-@pytest.mark.skip()
 def test_analyze_logs(tmp_path):
     log_file = tmp_path / "test.log"
     log_file.write_text(
@@ -251,7 +272,6 @@ def test_analyze_logs(tmp_path):
     assert result["top_messages"][0] == ("User logged in", 3)
 
 
-@pytest.mark.skip()
 def test_analyze_logs_filtered(tmp_path):
     log_file = tmp_path / "test.log"
     log_file.write_text(
@@ -271,7 +291,6 @@ def test_analyze_logs_filtered(tmp_path):
     assert result["top_messages"][0] == ("Database connection failed", 2)
 
 
-@pytest.mark.skip()
 def test_generator_memory_efficiency():
     """
     This test verifies that generators are actually lazy.
