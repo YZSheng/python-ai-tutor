@@ -171,26 +171,36 @@ def analyze_logs(file_path: str, levels: Optional[List[str]] = None) -> Dict[str
             'top_messages': [('Database error', 20), ('Timeout', 15), ...]
         }
     """
-    # TODO: Implement the main analysis function
-    # Hint: Chain generators together: read -> parse -> filter
-    # Hint: You'll need to consume the generator to count/analyze
-    # Hint: Consider using itertools.tee if you need to iterate multiple times
-    # Hint: Use Counter for counting messages
+    # STEP 1: Build a pipeline of generators (lazy - no computation yet!)
+    # This is the key concept: chain generators together for data transformation
+
+    # Generator 1: Read lines from file
+    lines = read_logs(file_path)
+
+    # Generator 2: Parse each line into structured data
+    # Use a generator expression to transform lines -> parsed tuples
+    parsed = (parse_log_line(line) for line in lines)
+
+    # Generator 3: Filter out malformed lines (where parse_log_line returned None)
+    # This is important for robustness!
+    valid_logs = (log for log in parsed if log is not None)
+
+    # Generator 4: Filter by log level using our helper function
+    # This demonstrates composition - using one generator inside another
+    filtered = filter_by_level(valid_logs, levels)
+
+    # STEP 2: Consume the generator pipeline and collect statistics
+    # This is where the actual work happens - generators are "pulled" through the pipeline
     by_level: Counter[str] = Counter()
     message_counts: Counter[str] = Counter()
 
-    # Precompute set for faster membership checks if levels is provided
-    levels_set = set(levels) if levels else None
-
-    for line in read_logs(file_path):
-        timestamp, level, message = parse_log_line(line)
-
-        if levels_set is not None and level not in levels_set:
-            continue
-
+    # Iterate through the fully-chained generator pipeline
+    # Each iteration pulls one value through: read -> parse -> validate -> filter
+    for timestamp, level, message in filtered:
         by_level[level] += 1
         message_counts[message] += 1
 
+    # STEP 3: Compute final results
     total = sum(by_level.values())
     top_messages = message_counts.most_common(3)
 
